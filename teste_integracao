@@ -1,0 +1,110 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+
+// Fornece informações sobre o processo de geração de tokens
+#include "addons/TokenHelper.h"
+// Fornece funções auxiliares para o Realtime Database
+#include "addons/RTDBHelper.h"
+
+
+// 1. CREDENCIAIS DE REDE E FIREBASE
+
+#define WIFI_SSID "NOME_DA_SUA_REDE_WIFI"
+#define WIFI_PASSWORD "SENHA_DO_WIFI"
+
+#define API_KEY "SUA_API_KEY_DO_FIREBASE"
+#define DATABASE_URL "URL_DO_SEU_REALTIME_DATABASE" // Ex: https://seu-projeto.firebaseio.com/
+
+
+// 2. CONFIGURAÇÕES DE HARDWARE
+
+#define SENSOR_PIN 15
+
+// Objetos do Firebase
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+// Variável para armazenar o último estado enviado (evita envios redundantes)
+// Iniciamos com -1 para forçar o envio na primeira leitura
+int estadoAnterior = -1; 
+
+
+// 3. FUNÇÃO DE CONVERSÃO LÓGICA (Requisito do Teste)
+
+int interpretarEstado(bool estadoSensor) {
+  // Se LOW retorna 1, se HIGH retorna 0
+  return (estadoSensor == LOW) ? 1 : 0;
+}
+
+
+// 4. CONFIGURAÇÃO INICIAL (Setup)
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Configura o pino do sensor como entrada 
+  // (use INPUT_PULLUP se o sensor precisar de resistor interno)
+  pinMode(SENSOR_PIN, INPUT); 
+
+  // --- Conexão Wi-Fi ---
+  Serial.print("Conectando ao Wi-Fi");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(300);
+  }
+  Serial.println();
+  Serial.print("Conectado com IP: ");
+  Serial.println(WiFi.localIP());
+
+  // --- Configuração do Firebase ---
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+
+  // Autenticação anônima simples para testes
+  if (Firebase.signUp(&config, &auth, "", "")) {
+    Serial.println("Autenticação no Firebase realizada com sucesso.");
+  } else {
+    Serial.printf("Falha na autenticação: %s\n", config.signer.signupError.message.c_str());
+  }
+
+  // Inicializa a biblioteca
+  Firebase.begin(&config, &auth);
+  // Habilita a reconexão automática ao Wi-Fi caso caia (Teste C++-08)
+  Firebase.reconnectWiFi(true); 
+}
+
+
+// 5. LOOP PRINCIPAL
+
+void loop() {
+  // Verifica se o Firebase está pronto para receber dados
+  if (Firebase.ready()) {
+    
+    // Lê o estado físico do sensor no pino 15
+    bool leituraAtual = digitalRead(SENSOR_PIN);
+    
+    // Converte a leitura usando a função isolada (Teste C++-01 e C++-02)
+    int estadoFormatado = interpretarEstado(leituraAtual);
+
+    // Verifica se houve alteração desde a última leitura (Testes C++-03 a C++-06)
+    if (estadoFormatado != estadoAnterior) {
+      Serial.printf("Mudança detectada! Enviando estado: %d...\n", estadoFormatado);
+      
+      // Tenta enviar o dado como inteiro (Int) para /valvula/estado
+      if (Firebase.RTDB.setInt(&fbdo, "/valvula/estado", estadoFormatado)) {
+        Serial.println("Valor enviado com sucesso para o Firebase.");
+        // Atualiza a variável de controle apenas se o envio der certo
+        estadoAnterior = estadoFormatado; 
+      } else {
+        // Trata erro de envio ou indisponibilidade (Teste C++-07)
+        Serial.printf("Erro ao enviar: %s\n", fbdo.errorReason().c_str());
+      }
+    }
+  }
+  
+  // Pequeno atraso para evitar leituras ruidosas (debounce)
+  delay(100); 
+}

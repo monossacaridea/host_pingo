@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isUser(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // A conta de serviço do ESP32 é o usuário "<deviceId>@devices.pingo.app" (Firebase Auth e-mail/senha)
+    function isDevice(deviceId) {
+      return signedIn() && request.auth.token.email == deviceId + '@devices.pingo.app';
+    }
+    function isDeviceOwner(deviceId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/devices/$(deviceId)).data.ownerUid == request.auth.uid;
+    }
+
+    // ---------- Usuários ----------
+    match /users/{uid} {
+      allow read: if isUser(uid);
+      allow create: if isUser(uid)
+        && request.resource.data.keys().hasOnly(['displayName', 'deviceId', 'createdAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 80;
+      allow update: if isUser(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'deviceId'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 80;
+      allow delete: if isUser(uid);
+
+      // US08: ciclos personalizados
+      match /cycles/{cycleId} {
+        allow read, delete: if isUser(uid);
+        allow create, update: if isUser(uid)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+          && request.resource.data.durationMin is number
+          && request.resource.data.durationMin > 0 && request.resource.data.durationMin <= 240
+          && request.resource.data.enabled is bool;
+      }
+    }
+
+    // ---------- Dispositivos ----------
+    match /devices/{deviceId} {
+      // "resource == null" permite o app checar se o ID existe antes de vincular
+      allow read: if signedIn()
+        && (resource == null || resource.data.ownerUid == request.auth.uid || isDevice(deviceId));
+
+      // vincular: o criador torna-se dono
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update:
+        // dono (app): só comandos e configurações; ownerUid/status ficam protegidos
+        if (resource.data.ownerUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['command', 'config']))
+        // ESP32: só o bloco status
+        || (isDevice(deviceId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+
+      allow delete: if false;
+
+      // US09: histórico escrito pelo ESP32, lido pelo dono
+      match /history/{entryId} {
+        allow read: if isDeviceOwner(deviceId) || isDevice(deviceId);
+        allow create: if isDevice(deviceId)
+          && request.resource.data.liters is number
+          && request.resource.data.liters >= 0;
+        allow update, delete: if false;
+      }
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
