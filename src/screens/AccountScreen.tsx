@@ -1,15 +1,4 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../contexts/AuthContext';
-import { isValidEmail, isValidPassword } from '../utils/authValidation';
-import {
-  updateDisplayName, requestEmailChange, changePassword, deleteAccount, authErrorMessage,
-} from '../services/authService';
-
-export default function AccountScreen() {
-=======
 import { Text, View, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { isValidEmail, isValidPassword } from '../utils/authValidation';
@@ -19,7 +8,6 @@ import { AuthShell, IconInput, FieldLabel, AuthButton, authStyles as t } from '.
 import { colors } from '../theme';
 
 export default function AccountScreen({ navigation }: any) {
->>>>>>> 7b6e649 (codigo final e rework visual)
   const { user } = useAuth();
   const [name, setName] = useState(user?.displayName ?? '');
   const [newEmail, setNewEmail] = useState('');
@@ -68,61 +56,6 @@ export default function AccountScreen({ navigation }: any) {
     ]);
   };
 
-<<<<<<< HEAD
-  return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Dados pessoais</Text>
-          <Text style={styles.label}>Nome</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} />
-          <Text style={styles.label}>E-mail atual</Text>
-          <Text style={styles.readonly}>{user?.email}</Text>
-          <TouchableOpacity style={styles.button} onPress={saveName}><Text style={styles.buttonText}>Salvar nome</Text></TouchableOpacity>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Confirmação de segurança</Text>
-          <Text style={styles.hint}>Para alterar e-mail, senha ou excluir a conta, informe sua senha atual.</Text>
-          <TextInput style={styles.input} placeholder="Senha atual" placeholderTextColor="#94A3B8"
-            secureTextEntry value={currentPassword} onChangeText={setCurrentPassword} />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Alterar e-mail</Text>
-          <TextInput style={styles.input} placeholder="Novo e-mail" placeholderTextColor="#94A3B8"
-            autoCapitalize="none" keyboardType="email-address" value={newEmail} onChangeText={setNewEmail} />
-          <TouchableOpacity style={styles.button} onPress={saveEmail}><Text style={styles.buttonText}>Enviar confirmação</Text></TouchableOpacity>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Alterar senha</Text>
-          <TextInput style={styles.input} placeholder="Nova senha" placeholderTextColor="#94A3B8"
-            secureTextEntry value={newPassword} onChangeText={setNewPassword} />
-          <TouchableOpacity style={styles.button} onPress={savePassword}><Text style={styles.buttonText}>Alterar senha</Text></TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.danger} onPress={confirmDelete}>
-          <Text style={styles.dangerText}>Excluir conta</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  card: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A', marginBottom: 10 },
-  label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6, marginTop: 6 },
-  readonly: { fontSize: 14, color: '#64748B', marginBottom: 6 },
-  hint: { fontSize: 13, color: '#64748B', marginBottom: 10 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: '#0F172A' },
-  button: { backgroundColor: '#0284C7', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
-  buttonText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
-  danger: { backgroundColor: '#FEE2E2', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginBottom: 24 },
-  dangerText: { color: '#DC2626', fontSize: 15, fontWeight: '700' },
-=======
   const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Settings' }] }));
 
   return (
@@ -167,5 +100,4 @@ const s = StyleSheet.create({
   line: { height: 1, backgroundColor: colors.border, marginTop: 12 },
   danger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FEF0EF', borderWidth: 1, borderColor: '#F7D3D0', borderRadius: 18, height: 56 },
   dangerText: { color: colors.danger, fontSize: 17, fontWeight: '700' },
->>>>>>> 7b6e649 (codigo final e rework visual)
 });
